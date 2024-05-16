@@ -88,6 +88,8 @@ public virtual class TriggerHandler {
     Boolean isActive = false;
     if( Trigger_Setting__mdt.getInstance(getHandlerName())?.Is_Active__c != null ){
       isActive = Trigger_Setting__mdt.getInstance(getHandlerName()).Is_Active__c ;
+    }else if(Test.isRunningTest()){
+      isActive = true;
     }
     
 
@@ -104,7 +106,7 @@ public virtual class TriggerHandler {
     System.debug('Is Trigger Active : '+isActive);
     System.debug('handler and context : '+getEventHandlerName());
     System.debug('Trigger Event : '+this.context);
-    System.debug('Max Count : '+ TriggerHandler.loopCountMap.get(getEventHandlerName()).getMax() +': Count :'+ TriggerHandler.loopCountMap.get(getEventHandlerName()).getCount() );
+   // System.debug('Max Count : '+ TriggerHandler.loopCountMap.get(getEventHandlerName()).getMax() +': Count :'+ TriggerHandler.loopCountMap.get(getEventHandlerName()).getCount() );
     }
 
     if(isActive){
@@ -235,20 +237,22 @@ public virtual class TriggerHandler {
   }
 
   @TestVisible
-  private void setTriggerContext(String ctx, Boolean testMode) {
+  private void setTriggerContext(System.TriggerOperation ctx, Boolean testMode) {
+    String strContext ;
     if(!Trigger.isExecuting && !testMode) {
       this.isTriggerExecuting = false;
+      strContext = Trigger.operationType?.name();
       return;
     } else {
       this.isTriggerExecuting = true;
-      if(!testMode){
-        this.context  = Trigger.operationType;
-      }
+      this.context = ctx;
+      strContext = String.valueOf(ctx);
     }
     
-    String strContext = Trigger.operationType?.name();
+    
+     System.debug('Trigger event'+ ctx);
     System.debug('Trigger event'+ strContext);
-
+    System.debug('Trigger event non String'+ context);
 		switch on strContext{
 			when 'BEFORE_INSERT' {
 				this.context = System.TriggerOperation.BEFORE_INSERT;
@@ -286,8 +290,9 @@ public virtual class TriggerHandler {
       Boolean exceeded = TriggerHandler.loopCountMap.get(handlerName).increment();
       if(exceeded) {
         Integer max = TriggerHandler.loopCountMap.get(handlerName).max;
-        throw new TriggerHandlerException('Maximum loop count of ' + String.valueOf(max) + ' reached in ' + handlerName);
-       // return false;
+       // throw new TriggerHandlerException('Maximum loop count of ' + String.valueOf(max) + ' reached in ' + handlerName);
+       System.debug('Maximum loop count of ' + String.valueOf(max) + ' reached in ' + handlerName + 'count :'+TriggerHandler.loopCountMap.get(handlerName).count);
+       return false;
       }
       return true;
     }
